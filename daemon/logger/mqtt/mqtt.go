@@ -9,6 +9,7 @@ import (
 	"github.com/docker/docker/daemon/logger"
 	"github.com/docker/docker/pkg/jsonlog"
 	"github.com/docker/docker/pkg/timeutils"
+	"math/rand"
 	"net"
 	"strconv"
 	"time"
@@ -20,10 +21,19 @@ const (
 	defaultQos             = 2
 	defaultRetained        = false
 	defaultTopicPrefix     = "docker-log"
-	defaultClientId        = "docker-logger"
+	defaultClientIdPrefix  = "docker-logger-"
 	defaultKeepAliveSecond = 60
 	defaultWaitTimeout     = 3 * time.Second
 )
+const hexLetters = "0123456789abcdef"
+
+func randStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = hexLetters[rand.Intn(len(hexLetters))]
+	}
+	return string(b)
+}
 
 type mqttLogger struct {
 	c           *mqtt.Client
@@ -49,8 +59,7 @@ func New(ctx logger.Context) (logger.Logger, error) {
 	}
 
 	opts := mqtt.NewClientOptions().AddBroker(addr)
-	//FIXME find a unique client id
-	opts.SetClientID(defaultClientId)
+	opts.SetClientID(defaultClientIdPrefix + randStringBytes(16))
 	opts.SetKeepAlive(defaultKeepAliveSecond * time.Second)
 
 	c := mqtt.NewClient(opts)
